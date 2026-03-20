@@ -1,0 +1,5 @@
+{
+  "name": "Chronos Age Master",
+  "description": "A precise real-time age calculator with celebrity comparisons, timezone detection, and AI-powered insights.",
+  "requestFramePermissions": ["geolocation"]
+}
