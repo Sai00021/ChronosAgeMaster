@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getCelebrityBirthdate, getCelebritySuggestions } from '../services/geminiService';
+import { getCelebrityBirthdate, getCelebritySuggestions, generateAgeVisualization } from '../services/geminiService';
 import { Celebrity } from '../types';
-import { Search, Star, Loader2, User, Users, Calendar as CalendarIcon, Share2, Check, Copy, Globe, Award, Info, RefreshCcw } from 'lucide-react';
+import { Search, Star, Loader2, User, Users, Calendar as CalendarIcon, Share2, Check, Copy, Globe, Award, Info, RefreshCcw, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { differenceInDays, format, intervalToDuration } from 'date-fns';
 
 import { Toast, ToastType } from './Toast';
@@ -23,6 +23,8 @@ export const CelebrityComparison: React.FC<CelebrityComparisonProps> = ({ userBi
   const [celebrity, setCelebrity] = useState<Celebrity | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [visualizing, setVisualizing] = useState(false);
+  const [visualizationUrl, setVisualizationUrl] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
     message: '',
     type: 'success',
@@ -199,6 +201,22 @@ export const CelebrityComparison: React.FC<CelebrityComparisonProps> = ({ userBi
   };
 
   const diff = celebrity ? calculateDiff(celebrity.birthDate) : (manualDate ? calculateDiff(manualDate) : null);
+
+  const handleGenerateVisualization = async () => {
+    if (!diff || diff.noUserDate) return;
+    
+    setVisualizing(true);
+    try {
+      const ageDesc = `${diff.years} years, ${diff.months} months, and ${diff.days} days`;
+      const url = await generateAgeVisualization(ageDesc);
+      setVisualizationUrl(url);
+      showToast('Visualization generated!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to generate visualization', 'error');
+    } finally {
+      setVisualizing(false);
+    }
+  };
 
   const handleShare = async () => {
     if (!diff || diff.noUserDate) return;
@@ -508,8 +526,36 @@ export const CelebrityComparison: React.FC<CelebrityComparisonProps> = ({ userBi
                         </p>
                       </div>
                     )}
+                    
+                    {visualizationUrl && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-6 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl"
+                      >
+                        <img src={visualizationUrl} alt="Age Visualization" className="w-full h-auto object-cover" />
+                      </motion.div>
+                    )}
+
                     {!diff.noUserDate && (
-                      <div className="flex justify-end pt-4">
+                      <div className="flex flex-wrap justify-end gap-3 pt-4">
+                        <button
+                          onClick={handleGenerateVisualization}
+                          disabled={visualizing}
+                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl hover:from-indigo-700 hover:to-blue-700 transition-all text-white shadow-lg shadow-blue-500/20 font-bold text-sm disabled:opacity-50"
+                        >
+                          {visualizing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Visualizing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              <span>Generate AI Art</span>
+                            </>
+                          )}
+                        </button>
                         <button
                           onClick={handleShare}
                           className="flex items-center gap-2 px-6 py-3 bg-white rounded-2xl hover:bg-blue-100 transition-all text-blue-600 border-2 border-blue-100 shadow-sm font-bold text-sm"
